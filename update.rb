@@ -25,7 +25,7 @@ $options = {
   security_updates_only: false,
   vendor_dependencies: false,
   ignore_conditions: [],
-  pull_request: true
+  pull_request: false
 }
 
 unless ENV["LOCAL_GITHUB_ACCESS_TOKEN"].to_s.strip.empty?
@@ -60,6 +60,7 @@ def fetch_files(fetcher)
     end
     fetcher.files
   end
+
 rescue StandardError => e
   error_details = Dependabot.fetcher_error_details(e)
   raise unless error_details
@@ -101,9 +102,6 @@ $source = Dependabot::Source.new(
 )
 
 $repo_contents_path = File.expand_path(File.join("tmp", $repo_name.split("/")))
-
-puts "repo_contents_path: "
-puts $repo_contents_path
 
 fetcher_args = {
   source: $source,
@@ -225,9 +223,12 @@ dependencies.each do |dep|
 
   updated_deps_collection.push(*updated_deps)
 
-  puts checker.latest_resolvable_version
-
 end
+
+if updated_deps_collection.empty?
+  puts "Done"
+  return
+end 
 
 # Generate updated dependency files
 updated_deps_collection.each do |dep|
