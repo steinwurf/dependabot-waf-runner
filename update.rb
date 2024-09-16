@@ -25,7 +25,7 @@ $options = {
   security_updates_only: false,
   vendor_dependencies: false,
   ignore_conditions: [],
-  pull_request: false
+  pull_request: true
 }
 
 unless ENV["LOCAL_GITHUB_ACCESS_TOKEN"].to_s.strip.empty?
@@ -147,6 +147,8 @@ puts "=> updating #{dependencies.count} dependencies: #{dependencies.map(&:name)
 
 checker_count = 0
 
+updated_deps_collection = []
+
 dependencies.each do |dep|
   checker_count += 1
   checker = update_checker_for(dep)
@@ -221,34 +223,38 @@ dependencies.each do |dep|
     requirements_to_unlock: requirements_to_unlock
   )
 
+  updated_deps_collection.push(*updated_deps)
+
   puts checker.latest_resolvable_version
 
-  # Generate updated dependency files
-  print " - Updating #{dep.name} (from #{dep.version}) "
-  updater = Dependabot::FileUpdaters.for_package_manager($package_manager).new(
-    dependencies: updated_deps,
-    dependency_files: $files,
-    credentials: $options[:credentials],
-  )
-
-  updated_files = updater.updated_dependency_files
-
-  # Create a pull request for the update
-  next if $options[:pull_request] == false
-  pr_creator = Dependabot::PullRequestCreator.new(
-    source: $source,
-    base_commit: commit,
-    dependencies: updated_deps,
-    files: updated_files,
-    credentials: $options[:credentials],
-    assignees: [(ENV["PULL_REQUESTS_ASSIGNEE"])&.to_i],
-    label_language: true
-  )
-
-  pull_request = pr_creator.create
-  puts " submitted"
-  rescue Dependabot::PrivateSourceAuthenticationFailure => e
-    puts "Failed to update #{e.message}"
 end
+
+# Generate updated dependency files
+updated_deps_collection.each do |dep|
+  print " - Updating #{dep.name} (from #{dep.version}) \n"
+end
+
+updater = Dependabot::FileUpdaters.for_package_manager($package_manager).new(
+  dependencies: updated_deps_collection,
+  dependency_files: $files,
+  credentials: $options[:credentials],
+)
+
+updated_files = updater.updated_dependency_files
+
+# Create a pull request for the update
+return unless $options[:pull_request]
+pr_creator = Dependabot::PullRequestCreator.new(
+  source: $source,
+  base_commit: commit,
+  dependencies: updated_deps_collection,
+  files: updated_files,
+  credentials: $options[:credentials],
+  assignees: [(ENV["PULL_REQUESTS_ASSIGNEE"])&.to_i],
+  label_language: true
+)
+
+pull_request = pr_creator.create
+puts " submitted"
 
 puts "Done"
