@@ -25,9 +25,8 @@ $options = {
   security_updates_only: false,
   vendor_dependencies: false,
   ignore_conditions: [],
-  pull_request: false
-}
-
+  pull_request: true
+}true
 unless ENV["LOCAL_GITHUB_ACCESS_TOKEN"].to_s.strip.empty?
   $options[:credentials] << Dependabot::Credential.new(
     {
@@ -40,6 +39,7 @@ unless ENV["LOCAL_GITHUB_ACCESS_TOKEN"].to_s.strip.empty?
 end
 
 $repo_name = ENV["GITHUB_REPO"]
+$options[:branch] = ENV["REPO_BRANCH"] || nil
 directory = ENV["DIRECTORY_PATH"] || "/"
 $package_manager = "waf"
 
