@@ -26,7 +26,7 @@ $options = {
   vendor_dependencies: false,
   ignore_conditions: [],
   pull_request: true
-}true
+}
 unless ENV["LOCAL_GITHUB_ACCESS_TOKEN"].to_s.strip.empty?
   $options[:credentials] << Dependabot::Credential.new(
     {
